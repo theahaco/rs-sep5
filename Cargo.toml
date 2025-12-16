@@ -6,7 +6,7 @@ repository = "https://github.com/ahalabs/rs-sep5"
 authors = ["Aha Labs <team@ahalabs.dev>"]
 license = "Apache-2.0"
 readme = "README.md"
-version = "0.0.4"
+version = "0.0.5"
 edition = "2021"
 rust-version = "1.67"
 
