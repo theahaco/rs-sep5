@@ -11,7 +11,7 @@ edition = "2021"
 rust-version = "1.67"
 
 [dependencies]
-stellar-strkey = "0.0.8"
+stellar-strkey = "0.0.15"
 thiserror = "1.0.31"
 slip10 = { package = "slipped10", version = "0.4.6" }
 tiny-bip39 = "1.0.0"
