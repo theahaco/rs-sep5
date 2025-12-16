@@ -38,12 +38,7 @@ impl SeedPhrase {
 
     /// Uses passed entropy to generate the seed phrase
     pub fn from_entropy(bytes: &[u8]) -> Result<Self, Error> {
-        let res = bip39::Mnemonic::from_entropy(bytes, bip39::Language::English).map_err(|e| {
-            match e.downcast::<bip39::ErrorKind>() {
-                Ok(error) => error.into(),
-                Err(_) => Error::Unknown,
-            }
-        })?;
+        let res = bip39::Mnemonic::from_entropy(bytes, bip39::Language::English)?;
         Ok(Self::new_ed25519(res))
     }
 
@@ -52,13 +47,7 @@ impl SeedPhrase {
     pub fn from_seed_phrase(seed_phrase: &str) -> Result<Self, Error> {
         let seed_phrase = seed_phrase.split_whitespace().collect::<Vec<_>>().join(" ");
 
-        let res =
-            bip39::Mnemonic::from_phrase(&seed_phrase, bip39::Language::English).map_err(|e| {
-                match e.downcast::<bip39::ErrorKind>() {
-                    Ok(error) => error.into(),
-                    Err(_) => Error::Unknown,
-                }
-            })?;
+        let res = bip39::Mnemonic::from_phrase(&seed_phrase, bip39::Language::English)?;
         Ok(Self::new_ed25519(res))
     }
 
@@ -83,14 +72,14 @@ impl SeedPhrase {
     /// Generate a key from a path string, anything after `m/44'/148'`
     pub fn from_path_string(&self, path: &str, passphrase: Option<&str>) -> Result<KeyPair, Error> {
         let path = format!("m/44'/148'{path}");
-        slip10::derive_key_from_path(
+        Ok(slip10::derive_key_from_path(
             self.to_seed(passphrase).as_bytes(),
             self.curve,
             &slip10::BIP32Path::from_str(&path)
                 .map_err(|_| Error::InvalidIndex { path: path.clone() })?,
         )
-        .map_err(|_| Error::InvalidIndex { path })
-        .map(Into::into)
+        .map_err(|_| Error::InvalidIndex { path })?
+        .into())
     }
 
     /// Generate a key from a path index, anything after `m/44'/148'/{num}'`
