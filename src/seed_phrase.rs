@@ -1,37 +1,36 @@
 use std::str::FromStr;
 
+use ed25519_dalek::SigningKey;
+use ows_signer::{Curve, HdDeriver};
 use stellar_strkey::ed25519::{PrivateKey, PublicKey};
 
 use crate::error::Error;
 
-pub struct KeyPair(slip10::Key);
+pub struct KeyPair {
+    private_key: [u8; 32],
+}
 
 impl KeyPair {
     pub fn public(&self) -> PublicKey {
-        PublicKey(self.0.public_key()[1..].try_into().unwrap())
+        let signing_key = SigningKey::from_bytes(&self.private_key);
+        PublicKey(signing_key.verifying_key().to_bytes())
     }
 
     pub fn private(&self) -> PrivateKey {
-        PrivateKey(self.0.key)
-    }
-}
-
-impl From<slip10::Key> for KeyPair {
-    fn from(value: slip10::Key) -> Self {
-        KeyPair(value)
+        PrivateKey(self.private_key)
     }
 }
 
 #[derive(Clone, Debug)]
 pub struct SeedPhrase {
-    pub curve: slip10::Curve,
+    pub curve: Curve,
     pub seed_phrase: bip39::Mnemonic,
 }
 
 impl SeedPhrase {
     pub fn new_ed25519(seed_phrase: bip39::Mnemonic) -> Self {
         Self {
-            curve: slip10::Curve::Ed25519,
+            curve: Curve::Ed25519,
             seed_phrase,
         }
     }
@@ -64,7 +63,7 @@ impl SeedPhrase {
         self.seed_phrase.phrase()
     }
 
-    /// bip39 `Seed` used to generate key with slip10
+    /// bip39 `Seed` used to derive keys via HD derivation
     pub fn to_seed(&self, passphrase: Option<&str>) -> bip39::Seed {
         bip39::Seed::new(&self.seed_phrase, passphrase.unwrap_or_default())
     }
@@ -72,14 +71,13 @@ impl SeedPhrase {
     /// Generate a key from a path string, anything after `m/44'/148'`
     pub fn from_path_string(&self, path: &str, passphrase: Option<&str>) -> Result<KeyPair, Error> {
         let path = format!("m/44'/148'{path}");
-        Ok(slip10::derive_key_from_path(
-            self.to_seed(passphrase).as_bytes(),
-            self.curve,
-            &slip10::BIP32Path::from_str(&path)
-                .map_err(|_| Error::InvalidIndex { path: path.clone() })?,
-        )
-        .map_err(|_| Error::InvalidIndex { path })?
-        .into())
+        let secret = HdDeriver::derive(self.to_seed(passphrase).as_bytes(), &path, self.curve)
+            .map_err(|_| Error::InvalidIndex { path: path.clone() })?;
+        let private_key: [u8; 32] = secret
+            .expose()
+            .try_into()
+            .map_err(|_| Error::InvalidIndex { path })?;
+        Ok(KeyPair { private_key })
     }
 
     /// Generate a key from a path index, anything after `m/44'/148'/{num}'`
