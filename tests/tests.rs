@@ -155,6 +155,9 @@ fn full_test(
     for (i, (public_key, private_key)) in stellar_keys.iter().enumerate() {
         let key_pair = phrase.from_path_index(i, passphrase).unwrap();
         assert_eq!(&key_pair.public().to_string(), *public_key);
-        assert_eq!(&key_pair.private().to_string(), *private_key);
+        assert_eq!(
+            &key_pair.private().as_unredacted().to_string(),
+            *private_key
+        );
     }
 }

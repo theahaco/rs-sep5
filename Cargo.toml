@@ -12,7 +12,7 @@ rust-version = "1.67"
 
 [dependencies]
 stellar-strkey = ">=0.0.15"
-thiserror = "=2.0.18"
+thiserror = "~2.0.19"
 tiny-bip39 = "=2.0.0"
 ows-signer = "=1.2.4"
 ed25519-dalek = "=2.2.0"
